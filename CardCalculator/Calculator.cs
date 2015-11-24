@@ -50,6 +50,7 @@ namespace CardCalculator
                 int FeeAmountLi = CalculateFeeAmount(AmountLi);
                 double uAmountLd = Math.Ceiling((AmountLi - FeeAmountLi) / ExchangeRateLd);
                 AmountLd = Math.Floor(uAmountLd * ExchangeRateLd) / 100;
+                //AmountLd = AmountLi - FeeAmountLi;
                 texResult.Text = AmountLd.ToString();
             }
             else
@@ -74,7 +75,7 @@ namespace CardCalculator
                     {
                         AmountLia = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherPartyLi - 1);
                         AmountLia[0] += (AmountLi - AmountLia[1]);
-                        AmountLia[1] += AmountLi;
+                        AmountLia[1] = AmountLi;
                         break;
                     }
                     else
@@ -90,15 +91,14 @@ namespace CardCalculator
                 AmountLia = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherPartyLi);
                 iterations++;
             }
-            int FeeAmount = AmountLia[0];
-            return FeeAmount;
+            return AmountLia[0];
         }
 
         private int[] CalculateAmountToSendForDesiredReceivedAmount(int receivedAmount)
         {
             int receivedAmountLi = receivedAmount;
             int[] AmountLia = new int[2];
-            int SteamFeeLi = (int)(Math.Floor(Math.Max(receivedAmountLi * Properties.Settings.Default.Fee_Publisher, 1) + Properties.Settings.Default.Fee_Base));
+            int SteamFeeLi = (int)(Math.Floor(Math.Max(receivedAmountLi * Properties.Settings.Default.Fee_Percent, 1) + Properties.Settings.Default.Fee_Base));
             int PublisherFeeLi = (int)(Math.Floor(Properties.Settings.Default.Fee_Publisher > 0 ? Math.Max(receivedAmountLi * Properties.Settings.Default.Fee_Publisher, 1) : 0));
             AmountLia[0] = SteamFeeLi + PublisherFeeLi;
             AmountLia[1] = receivedAmountLi + SteamFeeLi + PublisherFeeLi;
