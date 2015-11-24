@@ -16,24 +16,41 @@ namespace CardCalculator
             InitializeComponent();
         }
 
+        private void Calculator_Load(object sender, EventArgs e)
+        {
+            texLowestPrice.Text = Properties.Settings.Default.Lowest_Price.ToString();
+            texExchangeRate.Text = Properties.Settings.Default.Exchange_Rate.ToString();
+            butMore.Tag = false;
+            CalculateAmount();
+        }
+
         private void texLowestPrice_KeyUp(object sender, KeyEventArgs e)
         {
-            Calculate();
+            if (!(bool)butMore.Tag)
+            {
+                CalculateAmount();
+            }
         }
 
         private void texExchangeRate_KeyUp(object sender, KeyEventArgs e)
         {
-            Calculate();
+            if (!(bool)butMore.Tag)
+            {
+                CalculateAmount();
+            }
         }
 
-        private void Calculate()
+        private void CalculateAmount()
         {
-            if (texLowestPrice.Text != "" && double.Parse(texLowestPrice.Text) >= 0.03 && texExchangeRate.Text != "")
+            if (Texerror(texLowestPrice.Text) && Texerror(texExchangeRate.Text))
             {
-                double Amount_d = double.Parse(texLowestPrice.Text);
-                double ExchangeRate_d = double.Parse(texExchangeRate.Text);
-                Amount_d = CalculateAmount(Amount_d, ExchangeRate_d);
-                texResult.Text = Amount_d.ToString();
+                double AmountLd = double.Parse(texLowestPrice.Text);
+                double ExchangeRateLd = double.Parse(texExchangeRate.Text);
+                int AmountLi = (int)Math.Round(AmountLd * 100);
+                int FeeAmountLi = CalculateFeeAmount(AmountLi);
+                double uAmountLd = Math.Ceiling((AmountLi - FeeAmountLi) / ExchangeRateLd);
+                AmountLd = Math.Floor(uAmountLd * ExchangeRateLd) / 100;
+                texResult.Text = AmountLd.ToString();
             }
             else
             {
@@ -41,68 +58,104 @@ namespace CardCalculator
             }
         }
 
-        private double CalculateAmount(double Amount, double ExchangeRate)
+        private int CalculateFeeAmount(int Amount)
         {
-            double Amount_d = Math.Floor(Amount * 100);
-            double EstimatedAmountOfWalletFundsReceivedByOtherParty_d = Math.Floor(Amount * 100 / 1.15);
-            double[] Amount_da = new double[2];
-            Amount_da = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherParty_d);
-            int i = 0;
+            int AmountLi = Amount;
+            int EstimatedAmountOfWalletFundsReceivedByOtherPartyLi = (int)((AmountLi - Properties.Settings.Default.Fee_Base) / (Properties.Settings.Default.Fee_Percent + Properties.Settings.Default.Fee_Publisher + 1));
+            int[] AmountLia = new int[2];
+            AmountLia = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherPartyLi);
+            int iterations = 0;
             bool EverUndershot = false;
-            while (Amount_da[1] != Amount_d && i < 10)
+            while (AmountLia[1] != AmountLi && iterations < 10)
             {
-                if (Amount_da[1] > Amount_d)
+                if (AmountLia[1] > AmountLi)
                 {
                     if (EverUndershot)
                     {
-                        Amount_da = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherParty_d - 1);
-                        Amount_da[0] += (Amount_d - Amount_da[1]);
-                        Amount_da[1] += Amount_d;
+                        AmountLia = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherPartyLi - 1);
+                        AmountLia[0] += (AmountLi - AmountLia[1]);
+                        AmountLia[1] += AmountLi;
                         break;
                     }
                     else
                     {
-                        EstimatedAmountOfWalletFundsReceivedByOtherParty_d--;
+                        EstimatedAmountOfWalletFundsReceivedByOtherPartyLi--;
                     }
                 }
                 else
                 {
                     EverUndershot = true;
-                    EstimatedAmountOfWalletFundsReceivedByOtherParty_d++;
+                    EstimatedAmountOfWalletFundsReceivedByOtherPartyLi++;
                 }
-                Amount_da = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherParty_d);
-                i++;
+                AmountLia = CalculateAmountToSendForDesiredReceivedAmount(EstimatedAmountOfWalletFundsReceivedByOtherPartyLi);
+                iterations++;
             }
-            double uAmount_d = (Amount_d - Amount_da[0]) / ExchangeRate;
-            uAmount_d = Math.Ceiling(uAmount_d);
-            Amount = Math.Floor(uAmount_d * ExchangeRate) / 100;
-            return Amount;
+            int FeeAmount = AmountLia[0];
+            return FeeAmount;
         }
 
-        private double[] CalculateAmountToSendForDesiredReceivedAmount(double receivedAmount)
+        private int[] CalculateAmountToSendForDesiredReceivedAmount(int receivedAmount)
         {
-            double[] Amount = new double[2];
-            double SteamFee_d = receivedAmount * 0.05;
-            if (SteamFee_d > 1)
+            int receivedAmountLi = receivedAmount;
+            int[] AmountLia = new int[2];
+            int SteamFeeLi = (int)(Math.Floor(Math.Max(receivedAmountLi * Properties.Settings.Default.Fee_Publisher, 1) + Properties.Settings.Default.Fee_Base));
+            int PublisherFeeLi = (int)(Math.Floor(Properties.Settings.Default.Fee_Publisher > 0 ? Math.Max(receivedAmountLi * Properties.Settings.Default.Fee_Publisher, 1) : 0));
+            AmountLia[0] = SteamFeeLi + PublisherFeeLi;
+            AmountLia[1] = receivedAmountLi + SteamFeeLi + PublisherFeeLi;
+            return AmountLia;
+        }
+
+        private bool Texerror(string text)
+        {
+            bool textLb = false;
+            try
             {
-                SteamFee_d = Math.Floor(SteamFee_d);
+                double.Parse(text);
+                textLb = true;
+            }
+            catch (Exception)
+            {
+                textLb = false;
+            }
+            return textLb;
+        }
+
+        private void butMore_Click(object sender, EventArgs e)
+        {
+            if ((bool)butMore.Tag)
+            {
+                butMore.Tag = false;
+                butMore.Text = "更多";
+                labLowestPrice.Text = "市场最低价格";
+                labExchangeRate.Text = "当前美元汇率";
+                labResult.Text = "建议收款价格";
+                Properties.Settings.Default.Fee_Publisher = Texerror(texLowestPrice.Text) ? double.Parse(texLowestPrice.Text) : 0.1;
+                Properties.Settings.Default.Fee_Percent = Texerror(texExchangeRate.Text) ? double.Parse(texExchangeRate.Text) : 0.05;
+                Properties.Settings.Default.Fee_Base = Texerror(texResult.Text) ? int.Parse(texResult.Text) : 0;
+                texResult.ReadOnly = true;
+                texLowestPrice.Text = Properties.Settings.Default.Lowest_Price.ToString();
+                texExchangeRate.Text = Properties.Settings.Default.Exchange_Rate.ToString();
+                CalculateAmount();
             }
             else
             {
-                SteamFee_d = 1;
+                butMore.Tag = true;
+                butMore.Text = "返回";
+                labLowestPrice.Text = "厂商收取费率";
+                labExchangeRate.Text = "作坊收取费率";
+                labResult.Text = "最低收取金额";
+                Properties.Settings.Default.Lowest_Price = Texerror(texLowestPrice.Text) ? double.Parse(texLowestPrice.Text) : 0.03;
+                Properties.Settings.Default.Exchange_Rate = Texerror(texExchangeRate.Text) ? double.Parse(texExchangeRate.Text) : 0;
+                texResult.ReadOnly = false;
+                texLowestPrice.Text = Properties.Settings.Default.Fee_Publisher.ToString();
+                texExchangeRate.Text = Properties.Settings.Default.Fee_Percent.ToString();
+                texResult.Text = Properties.Settings.Default.Fee_Base.ToString();
             }
-            double PublisherFee_d = receivedAmount * 0.10;
-            if (PublisherFee_d > 1)
-            {
-                PublisherFee_d = Math.Floor(PublisherFee_d);
-            }
-            else
-            {
-                PublisherFee_d = 1;
-            }
-            Amount[0] = SteamFee_d + PublisherFee_d;
-            Amount[1] = receivedAmount + SteamFee_d + PublisherFee_d;
-            return Amount;
+        }
+
+        private void Calculator_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Properties.Settings.Default.Save();
         }
     }
 }
