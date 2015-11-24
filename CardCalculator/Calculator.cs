@@ -16,7 +16,7 @@ namespace CardCalculator
             InitializeComponent();
         }
 
-        private void Calculator_Load(object sender, EventArgs e)
+        private void Calculator_Load(object sender, EventArgs e)//加载设置以及初始化
         {
             texLowestPrice.Text = Properties.Settings.Default.Lowest_Price.ToString();
             texExchangeRate.Text = Properties.Settings.Default.Exchange_Rate.ToString();
@@ -40,18 +40,17 @@ namespace CardCalculator
             }
         }
 
-        private void CalculateAmount()
+        private void CalculateAmount()//计算建议价格
         {
-            if (Texerror(texLowestPrice.Text) && Texerror(texExchangeRate.Text))
+            if (Texerror(texLowestPrice.Text) && Texerror(texExchangeRate.Text))//判断输入字符是否合法
             {
                 double AmountLd = double.Parse(texLowestPrice.Text);
                 double ExchangeRateLd = double.Parse(texExchangeRate.Text);
-                int AmountLi = (int)Math.Round(AmountLd * 100);
-                int FeeAmountLi = CalculateFeeAmount(AmountLi);
-                double uAmountLd = Math.Ceiling((AmountLi - FeeAmountLi) / ExchangeRateLd);
-                AmountLd = Math.Floor(uAmountLd * ExchangeRateLd) / 100;
-                //AmountLd = AmountLi - FeeAmountLi;
-                texResult.Text = AmountLd.ToString();
+                int AmountLi = (int)Math.Round(AmountLd * 100);//去除价格小数点
+                int FeeAmountLi = CalculateFeeAmount(AmountLi);//计算手续费
+                double uAmountLd = Math.Ceiling((AmountLi - FeeAmountLi) / ExchangeRateLd);//估计美元区卖出价格
+                AmountLd = Math.Floor(uAmountLd * ExchangeRateLd) / 100;//估计国区可能的最高价
+                texResult.Text = AmountLd.ToString();//输出
             }
             else
             {
@@ -59,7 +58,7 @@ namespace CardCalculator
             }
         }
 
-        private int CalculateFeeAmount(int Amount)
+        private int CalculateFeeAmount(int Amount)//计算手续费，直接从小作坊的javascript搬过来的
         {
             int AmountLi = Amount;
             int EstimatedAmountOfWalletFundsReceivedByOtherPartyLi = (int)((AmountLi - Properties.Settings.Default.Fee_Base) / (Properties.Settings.Default.Fee_Percent + Properties.Settings.Default.Fee_Publisher + 1));
@@ -94,7 +93,7 @@ namespace CardCalculator
             return AmountLia[0];
         }
 
-        private int[] CalculateAmountToSendForDesiredReceivedAmount(int receivedAmount)
+        private int[] CalculateAmountToSendForDesiredReceivedAmount(int receivedAmount)//直接从小作坊的javascript搬过来的
         {
             int receivedAmountLi = receivedAmount;
             int[] AmountLia = new int[2];
@@ -105,19 +104,17 @@ namespace CardCalculator
             return AmountLia;
         }
 
-        private bool Texerror(string text)
+        private bool Texerror(string text)//懒得做判断，直接转换，出错默认无效输入
         {
-            bool textLb = false;
             try
             {
                 double.Parse(text);
-                textLb = true;
+                return true;
             }
             catch (Exception)
             {
-                textLb = false;
+                return false;
             }
-            return textLb;
         }
 
         private void butMore_Click(object sender, EventArgs e)
@@ -155,7 +152,7 @@ namespace CardCalculator
 
         private void Calculator_FormClosing(object sender, FormClosingEventArgs e)
         {
-            Properties.Settings.Default.Save();
+            Properties.Settings.Default.Save();//保存设置
         }
     }
 }

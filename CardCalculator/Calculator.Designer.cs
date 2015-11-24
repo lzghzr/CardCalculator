@@ -119,7 +119,10 @@
             this.Controls.Add(this.texLowestPrice);
             this.Controls.Add(this.labExchangeRate);
             this.Controls.Add(this.labLowestPrice);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "Calculator";
+            this.ShowIcon = false;
             this.Text = "CardCalculator";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Calculator_FormClosing);
             this.Load += new System.EventHandler(this.Calculator_Load);
